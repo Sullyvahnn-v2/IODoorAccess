@@ -36,10 +36,8 @@ def create_app(config_class=Config):
 
     # Register namespaces
     from routes.user_routes import user_ns
-    from routes.log_routes import log_ns
 
     api.add_namespace(user_ns, path='/users')
-    api.add_namespace(log_ns, path='/logs')
 
     # Create database tables
     with app.app_context():
@@ -71,9 +69,5 @@ def create_app(config_class=Config):
     @jwt.unauthorized_loader
     def unauthorized_callback(error):
         return {'error': 'Missing authorization token'}, 401
-
-    @api.errorhandler(NoAuthorizationError)
-    def handle_no_auth_error(e):
-        return {"msg": "Missing Authorization Header"}, 401
 
     return app
