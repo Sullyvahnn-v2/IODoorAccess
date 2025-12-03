@@ -30,7 +30,7 @@ def create_app(config_class=Config):
         return {'error': 'Missing or invalid token'}, 401
 
     # Register namespaces
-    from routes.user_routes import user_ns
+    from routes.user import user_ns
     api.add_namespace(user_ns, path='/users')
 
     from routes.auth import auth_ns

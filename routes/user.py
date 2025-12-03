@@ -67,63 +67,43 @@ def admin_required():
 @user_ns.route('/')
 class UserList(Resource):
     @user_ns.doc('get_users',
-                 description='Get all users (admin only) or current user information',
-                 security='Bearer')
+                 description='Get all users (admin only) or current user information')
     @user_ns.response(401, 'Unauthorized', error_model)
     @user_ns.response(200, 'List of all users(admin)/ one user', user_stats_model)
-    @jwt_required()
+    @admin_required()
     def get(self):
         """Get all users (admin) or current user"""
-        claims = get_jwt()
-        current_user_id = get_jwt_identity()
+        users = User.query.all()
 
-        if claims.get('is_admin', False):
-            page = request.args.get('page', 1, type=int)
-            per_page = request.args.get('per_page', 10, type=int)
-
-            users = User.query.paginate(page=page, per_page=per_page, error_out=False)
-
-            return {
-                'users': [user.to_dict() for user in users.items],
-                'total': users.total,
-                'page': users.page,
-                'pages': users.pages
-            }, 200
-        else:
-            user = User.query.get(current_user_id)
-            if not user:
-                return {'error': 'User not found'}, 404
-            return {'users': [user.to_dict()]}, 200
+        return {
+            'users': [user.to_dict() for user in users.items],
+            'total': users.total,
+            'page': users.page,
+            'pages': users.pages
+        }, 200
 
 
 @user_ns.route('/<int:user_id>')
 class UserDetail(Resource):
     @user_ns.doc('get_user',
                  description='Get specific user by ID. Users can only view their own data unless they are admin.',
-                 security='Bearer',
                  params={'user_id': 'User ID'})
     @user_ns.response(200, 'Success', user_model)
     @user_ns.response(401, 'Unauthorized', error_model)
     @user_ns.response(403, 'Forbidden', error_model)
     @user_ns.response(404, 'User not found', error_model)
-    @jwt_required()
+    @admin_required()
     def get(self, user_id):
         """Get user by ID"""
-        claims = get_jwt()
-        current_user_id = get_jwt_identity()
-
-        if not claims.get('is_admin', False) and current_user_id != user_id:
-            return {'error': 'Unauthorized'}, 403
 
         user = User.query.get(user_id)
         if not user:
             return {'error': 'User not found'}, 404
 
-        return user.to_dict(include_sensitive=claims.get('is_admin', False)), 200
+        return user.to_dict(include_sensitive=True), 200
 
     @user_ns.doc('update_user',
                  description='Update user information. Users can only update their own data unless they are admin.',
-                 security='Bearer',
                  params={'user_id': 'User ID'})
     @user_ns.expect(user_update_model)
     @user_ns.response(200, 'User updated successfully', message_model)
@@ -135,17 +115,15 @@ class UserDetail(Resource):
     @user_ns.response(500, 'Internal server error', error_model)
     @jwt_required()
     def put(self, user_id):
+        identity = get_jwt_identity()
+        user = User.query.filter_by(email=identity).first()
         """Update user information"""
-        claims = get_jwt()
-        current_user_id = get_jwt_identity()
-
-        if not claims.get('is_admin', False) and current_user_id != user_id:
-            return {'error': 'Unauthorized'}, 403
-
         user = User.query.get(user_id)
         if not user:
             return {'error': 'User not found'}, 404
 
+        if not user.is_admin and user.id != user_id:
+            return {'error': 'Not authorized'}, 401
         try:
             data = user_ns.payload
 
@@ -161,7 +139,7 @@ class UserDetail(Resource):
             if data.get('biometric_data'):
                 user.set_biometric(data['biometric_data'])
 
-            if 'expire_time' in data:
+            if 'expire_time' in data and user.is_admin:
                 if data['expire_time']:
                     try:
                         user.expire_time = datetime.fromisoformat(data['expire_time'])
@@ -169,9 +147,6 @@ class UserDetail(Resource):
                         return {'error': 'Invalid expire_time format. Use ISO format'}, 400
                 else:
                     user.expire_time = None
-
-            if 'is_admin' in data and claims.get('is_admin', False):
-                user.is_admin = data['is_admin']
 
             db.session.commit()
 
@@ -186,7 +161,6 @@ class UserDetail(Resource):
 
     @user_ns.doc('delete_user',
                  description='Delete user (admin only). Admins cannot delete themselves.',
-                 security='Bearer',
                  params={'user_id': 'User ID'})
     @user_ns.response(200, 'User deleted successfully')
     @user_ns.response(400, 'Cannot delete own account', error_model)
@@ -197,9 +171,10 @@ class UserDetail(Resource):
     @admin_required()
     def delete(self, user_id):
         """Delete user (admin only)"""
-        current_user_id = get_jwt_identity()
+        identity = get_jwt_identity()
+        user =User.query.filter_by(email=identity).first()
 
-        if current_user_id == user_id:
+        if user.id == user_id:
             return {'error': 'Cannot delete your own account'}, 400
 
         user = User.query.get(user_id)
@@ -215,54 +190,3 @@ class UserDetail(Resource):
         except Exception as e:
             db.session.rollback()
             return {'error': str(e)}, 500
-
-
-@user_ns.route('/search')
-class UserSearch(Resource):
-    @user_ns.doc('search_users',
-                 description='Search users by email (admin only)',
-                 security='Bearer',
-                 params={'email': {'description': 'Email to search for', 'type': 'string', 'required': True}})
-    @user_ns.response(200, 'Success', user_search_model)
-    @user_ns.response(400, 'Email parameter required', error_model)
-    @user_ns.response(401, 'Unauthorized', error_model)
-    @user_ns.response(403, 'Admin privileges required', error_model)
-    @admin_required()
-    def get(self):
-        """Search users by email"""
-        email = request.args.get('email', '')
-
-        if not email:
-            return {'error': 'Email parameter required'}, 400
-
-        users = User.query.filter(User.email.contains(email)).all()
-
-        return {
-            'users': [user.to_dict() for user in users],
-            'count': len(users)
-        }, 200
-
-
-@user_ns.route('/stats')
-class UserStats(Resource):
-    @user_ns.doc('get_user_stats',
-                 description='Get user statistics including total users, admins, expired accounts, etc. (admin only)',
-                 security='Bearer')
-    @user_ns.response(200, 'Success', user_stats_model)
-    @user_ns.response(401, 'Unauthorized', error_model)
-    @user_ns.response(403, 'Admin privileges required', error_model)
-    @admin_required()
-    def get(self):
-        """Get user statistics (admin only)"""
-        total_users = User.query.count()
-        admin_users = User.query.filter_by(is_admin=True).count()
-        expired_users = User.query.filter(User.expire_time < datetime.utcnow()).count()
-        users_with_biometric = User.query.filter(User.biometric_hash.isnot(None)).count()
-
-        return {
-            'total_users': total_users,
-            'admin_users': admin_users,
-            'expired_users': expired_users,
-            'users_with_biometric': users_with_biometric,
-            'regular_users': total_users - admin_users
-        }, 200
