@@ -23,21 +23,18 @@ def create_app(config_class=Config):
         title='Authentication & Access Control API',
         description='A secure authentication system with JWT tokens, biometric support, and access logging',
         doc='/',
-        authorizations={
-            'Bearer': {
-                'type': 'apiKey',
-                'in': 'header',
-                'name': 'Authorization',
-                'description': 'Add a JWT token to the header with ** Bearer &lt;JWT&gt; ** token to authorize'
-            }
-        },
-        security='Bearer'
     )
+
+    @api.errorhandler(NoAuthorizationError)
+    def restx_no_auth_handler(error):
+        return {'error': 'Missing or invalid token'}, 401
 
     # Register namespaces
     from routes.user_routes import user_ns
-
     api.add_namespace(user_ns, path='/users')
+
+    from routes.auth import auth_ns
+    api.add_namespace(auth_ns, path='/auth')
 
     # Create database tables
     with app.app_context():
@@ -69,5 +66,6 @@ def create_app(config_class=Config):
     @jwt.unauthorized_loader
     def unauthorized_callback(error):
         return {'error': 'Missing authorization token'}, 401
+
 
     return app
