@@ -34,7 +34,7 @@ def create_app(config_class=Config):
     api.add_namespace(user_ns, path='/users')
 
     from routes.auth import auth_ns
-    api.add_namespace(auth_ns, path='/auth')
+    api.add_namespace(auth_ns, path='auth')
 
     # Create database tables
     with app.app_context():
