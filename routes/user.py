@@ -1,6 +1,8 @@
 from flask import request
 from flask_restx import Namespace, Resource, fields
-from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt, verify_jwt_in_request
+from jwt import ExpiredSignatureError
+
 from models import db, User
 from datetime import datetime
 from functools import wraps
@@ -34,7 +36,7 @@ user_stats_model = user_ns.model('UserStats', {
     'admin_users': fields.Integer(description='Number of admin users'),
     'regular_users': fields.Integer(description='Number of regular users'),
     'expired_users': fields.Integer(description='Number of expired users'),
-    'users_with_biometric': fields.Integer(description='Users with biometric auth enabled')
+    'users_with_biometric': fields.Integer(description='Users with biometric utils enabled')
 })
 
 message_model = user_ns.model('Message', {
@@ -48,15 +50,27 @@ error_model = user_ns.model('Error', {
 
 
 def admin_required():
-    """Decorator to require admin privileges"""
+    """Decorator to require admin privileges safely"""
 
     def wrapper(fn):
         @wraps(fn)
-        @jwt_required()
         def decorator(*args, **kwargs):
-            claims = get_jwt()
-            if not claims.get('is_admin', False):
+            try:
+                # verify JWT, this respects allow_expired=False
+                verify_jwt_in_request()
+                claims = get_jwt()
+            except ExpiredSignatureError:
+                return {'error': 'Token has expired'}, 401
+            except Exception as e:
+                return {'error': str(e)}, 401
+            email = claims.get('sub')
+            user = User.query.filter_by(email=email).first()
+            if not user:
+                return {'error': 'User does not exist'}, 401
+
+            if not user.is_admin:
                 return {'error': 'Admin privileges required'}, 403
+
             return fn(*args, **kwargs)
 
         return decorator

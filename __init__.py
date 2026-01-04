@@ -34,7 +34,7 @@ def create_app(config_class=Config):
     api.add_namespace(user_ns, path='/users')
 
     from routes.auth import auth_ns
-    api.add_namespace(auth_ns, path='auth')
+    api.add_namespace(auth_ns, path='/auth')
 
     # Create database tables
     with app.app_context():
@@ -53,6 +53,8 @@ def create_app(config_class=Config):
             admin.set_password(ADMIN_PASS)  # Change this in production!
             db.session.add(admin)
             db.session.commit()
+
+    jwt.init_app(app)
 
     # JWT error handlers
     @jwt.expired_token_loader

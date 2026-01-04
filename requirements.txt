@@ -8,3 +8,5 @@ python-dotenv==1.0.0
 opencv-python~=4.12.0.88
 numpy~=2.2.6
 insightface~=0.7.3
+qrcode~=8.2
+pyzbar~=0.1.9
