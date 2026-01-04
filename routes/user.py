@@ -19,11 +19,7 @@ user_model = user_ns.model('User', {
 })
 
 user_update_model = user_ns.model('UserUpdate', {
-    'email': fields.String(description='New email address', example='newemail@loco.pl'),
-    'password': fields.String(description='New password', example='newpassword123'),
-    'biometric_data': fields.String(description='New biometric data', example='new_fingerprint_data'),
     'expire_time': fields.String(description='New expiration time (ISO format)', example='2026-12-31T23:59:59'),
-    'is_admin': fields.Boolean(description='Admin privileges (admin only)', example=False)
 })
 
 user_search_model = user_ns.model('UserSearch', {
@@ -90,10 +86,7 @@ class UserList(Resource):
         users = User.query.all()
 
         return {
-            'users': [user.to_dict() for user in users.items],
-            'total': users.total,
-            'page': users.page,
-            'pages': users.pages
+            'users': [user.to_dict() for user in users],
         }, 200
 
 
@@ -127,7 +120,7 @@ class UserDetail(Resource):
     @user_ns.response(404, 'User not found', error_model)
     @user_ns.response(409, 'Email already in use', error_model)
     @user_ns.response(500, 'Internal server error', error_model)
-    @jwt_required()
+    @admin_required()
     def put(self, user_id):
         identity = get_jwt_identity()
         user = User.query.filter_by(email=identity).first()
@@ -136,27 +129,13 @@ class UserDetail(Resource):
         if not user:
             return {'error': 'User not found'}, 404
 
-        if not user.is_admin and user.id != user_id:
-            return {'error': 'Not authorized'}, 401
         try:
             data = user_ns.payload
-
-            if data.get('email'):
-                existing_user = User.query.filter_by(email=data['email']).first()
-                if existing_user and existing_user.id != user_id:
-                    return {'error': 'Email already in use'}, 409
-                user.email = data['email']
-
-            if data.get('password'):
-                user.set_password(data['password'])
-
-            if data.get('biometric_data'):
-                user.set_biometric(data['biometric_data'])
 
             if 'expire_time' in data and user.is_admin:
                 if data['expire_time']:
                     try:
-                        user.expire_time = datetime.fromisoformat(data['expire_time'])
+                        user.expire_time = datetime.strptime(data['expire_time'], "%d.%m.%Y")
                     except ValueError:
                         return {'error': 'Invalid expire_time format. Use ISO format'}, 400
                 else:
