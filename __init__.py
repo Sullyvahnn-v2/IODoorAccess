@@ -15,7 +15,7 @@ def create_app(config_class=Config):
     db.init_app(app)
 
     jwt = JWTManager(app)
-    CORS(app)
+    CORS(app, resources={r"/*": {"origins": "http://127.0.0.1:5173"}}, supports_credentials=True)
 
     api = Api(
         app,

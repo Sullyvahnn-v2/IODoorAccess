@@ -83,7 +83,8 @@ class Login(Resource):
         if user.is_expired():
             return {'message': 'Account expired'}, 403
 
-        access_token = create_access_token(identity=user.email)
+        additional_claims = {"is_admin": user.is_admin}
+        access_token = create_access_token(identity=user.email, additional_claims=additional_claims)
 
         resp = jsonify({'message': 'Login successful'})
         set_access_cookies(resp, access_token)

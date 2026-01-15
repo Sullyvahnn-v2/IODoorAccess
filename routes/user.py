@@ -66,20 +66,17 @@ def admin_required():
 
 @user_ns.route('/')
 class UserList(Resource):
-    @user_ns.doc('get_users',
-                 description='Get all users (admin only) or current user information')
-    @user_ns.response(401, 'Unauthorized', error_model)
-    @user_ns.response(200, 'List of all users(admin)/ one user', user_stats_model)
+    @user_ns.doc('get_users', description='Get all users (admin only)')
+    @user_ns.response(401, 'Unauthorized')
+    @user_ns.response(200, 'Success')
     @admin_required()
     def get(self):
-        """Get all users (admin) or current user"""
-        users = User.query.all()
+        """Get all users from database"""
+        users = User.query.all()  # Pobieramy wszystkich jako listę
 
+        # POPRAWKA: Iterujemy bezpośrednio po 'users', bez .items
         return {
-            'users': [user.to_dict() for user in users.items],
-            'total': users.total,
-            'page': users.page,
-            'pages': users.pages
+            'users': [user.to_dict() for user in users]
         }, 200
 
 
