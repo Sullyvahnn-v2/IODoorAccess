@@ -36,6 +36,14 @@ def authenticate(image, user_emb, threshold=0.42):
 def capture_image():
     cam = cv2.VideoCapture(0)
     ret, frame = cam.read()
+
+    from matplotlib import pyplot as plt
+
+    plt.imshow(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+    plt.show()
+
     cam.release()
     return get_embedding(frame)
+
+
 
