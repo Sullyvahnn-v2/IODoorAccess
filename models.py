@@ -74,7 +74,7 @@ class Log(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
     access_granted = db.Column(db.Boolean, nullable=False)
     error_log = db.Column(db.String(500), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=True, index=True)
 
     def to_dict(self):
         """Convert log to dictionary"""
@@ -84,7 +84,7 @@ class Log(db.Model):
             'user_email': self.user.email if self.user else None,
             'access_granted': self.access_granted,
             'error_log': self.error_log,
-            'created_at': self.time.isoformat(),
+            'created_at': self.created_at.isoformat(),
         }
 
     def __repr__(self):

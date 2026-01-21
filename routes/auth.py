@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+from routes.log import make_log
 
 from flask import request, jsonify
 from flask_restx import Namespace, Resource, fields
@@ -9,6 +10,7 @@ from flask_jwt_extended import (
     jwt_required,
     get_jwt_identity
 )
+
 from models import User, db
 from routes.user import admin_required
 from utils.qrCode import verify_token, generate_secure_token
@@ -20,7 +22,7 @@ auth_ns = Namespace('auth', description='Authentication operations')
 signup_model = auth_ns.model('Signup', {
     'email': fields.String(required=True, description='User email'),
     'password': fields.String(required=True, description='User password'),
-    'date': fields.String(required=True, description='Expiration date')
+    'days': fields.Integer(required=False, description='Expiration date', default=365)
 })
 
 qr_generate_model = auth_ns.model('QrGenerate', {
@@ -59,7 +61,7 @@ class Signup(Resource):
         data = request.json
         email = data.get('email')
         password = data.get('password')
-        date = data.get('date')
+        days = data.get('days')
 
         if not email or not password:
             return {'message': 'Email and password are required'}, 400
@@ -68,7 +70,7 @@ class Signup(Resource):
             return {'message': 'Email already exists'}, 409
 
         try:
-            expire_time = datetime.strptime(date, "%d.%m.%Y")
+            expire_time = datetime.now() + timedelta(days=days)
         except Exception:
             return {'message': 'Invalid date format. Use DD.MM.YYYY'}, 400
 
@@ -77,7 +79,6 @@ class Signup(Resource):
 
         db.session.add(user)
         db.session.commit()
-
         return {'message': 'User created successfully'}, 201
 
 
@@ -170,12 +171,14 @@ class VerifyQR(Resource):
 
         user_id = verify_token(token)
         if not user_id:
+            make_log(-1, False, "Invalid or expired QR token")
             return {'message': 'Invalid or expired QR token'}, 401
 
         user = User.query.get(user_id)
         if not user:
             return {'message': 'User not found'}, 404
 
+        make_log(user_id, True, "QR authentication successful")
         resp = jsonify({
             'message': 'QR authentication successful',
             'user': user.email

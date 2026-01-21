@@ -4,7 +4,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt, verify_j
 from jwt import ExpiredSignatureError
 
 from models import db, User
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from functools import wraps
 
 user_ns = Namespace('users', description='User management operations')
@@ -19,7 +19,7 @@ user_model = user_ns.model('User', {
 })
 
 user_update_model = user_ns.model('UserUpdate', {
-    'expire_time': fields.String(description='New expiration time (ISO format)', example='2026-12-31T23:59:59'),
+    'expire_in_days': fields.Integer(description='Expiration interval in days from now', required=True, default=365),
 })
 
 user_search_model = user_ns.model('UserSearch', {
@@ -135,7 +135,7 @@ class UserDetail(Resource):
             if 'expire_time' in data and user.is_admin:
                 if data['expire_time']:
                     try:
-                        user.expire_time = datetime.strptime(data['expire_time'], "%d.%m.%Y")
+                        user.expire_time = date.today() + timedelta(days=365)
                     except ValueError:
                         return {'error': 'Invalid expire_time format. Use ISO format'}, 400
                 else:
