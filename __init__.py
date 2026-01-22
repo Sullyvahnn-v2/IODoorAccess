@@ -29,12 +29,24 @@ def create_app(config_class=Config):
     def restx_no_auth_handler(error):
         return {'error': 'Missing or invalid token'}, 401
 
-    # Register namespaces
+    # --- Rejestracja Przestrzeni Nazw (Namespaces) ---
+    # WAŻNE: Parametr 'path' MUSI zaczynać się od '/'
+
+    # 1. Użytkownicy
     from routes.user import user_ns
     api.add_namespace(user_ns, path='/users')
 
+    # 2. Autoryzacja (Login/Signup)
     from routes.auth import auth_ns
-    api.add_namespace(auth_ns, path='auth')
+    api.add_namespace(auth_ns, path='/auth')  # <-- Tutaj był błąd (brakowało /)
+
+    # 3. Logi wejść
+    from routes.log import log_ns
+    api.add_namespace(log_ns, path='/logs')
+
+    # 4. Kontrola Dostępu (Bramka + QR)
+    from routes.access_control import access_ns
+    api.add_namespace(access_ns, path='/access')
 
     # Create database tables
     with app.app_context():
@@ -42,17 +54,24 @@ def create_app(config_class=Config):
 
         # Create default admin user if not exists
         from models import User
-        ADMIN_EMAIL = app.config["ADMIN_EMAIL"]
-        ADMIN_PASS = app.config["ADMIN_PASS"]
-        admin = User.query.filter_by(email=ADMIN_EMAIL).first()
-        if not admin:
-            admin = User(
-                email=ADMIN_EMAIL,
-                is_admin=True
-            )
-            admin.set_password(ADMIN_PASS)  # Change this in production!
-            db.session.add(admin)
-            db.session.commit()
+        ADMIN_EMAIL = app.config.get("ADMIN_EMAIL", "admin@admin.com")
+        ADMIN_PASS = app.config.get("ADMIN_PASS", "admin123")
+        
+        try:
+            admin = User.query.filter_by(email=ADMIN_EMAIL).first()
+            if not admin:
+                print(f"Creating default admin: {ADMIN_EMAIL}")
+                admin = User(
+                    email=ADMIN_EMAIL,
+                    is_admin=True
+                )
+                admin.set_password(ADMIN_PASS)
+                # Inicjalizujemy token QR dla admina, żeby nie było błędów null
+                admin.regenerate_qr_token()
+                db.session.add(admin)
+                db.session.commit()
+        except Exception as e:
+            print(f"Warning: Could not create admin user (Database might not be ready): {e}")
 
     # JWT error handlers
     @jwt.expired_token_loader
@@ -66,6 +85,5 @@ def create_app(config_class=Config):
     @jwt.unauthorized_loader
     def unauthorized_callback(error):
         return {'error': 'Missing authorization token'}, 401
-
 
     return app

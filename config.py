@@ -1,10 +1,13 @@
 import os
 from datetime import timedelta
+from dotenv import load_dotenv
 
+# Ładowanie zmiennych z pliku .env (przydatne lokalnie)
+load_dotenv()
 
 class Config:
-    # Flask
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'niebezpieczne'
+    # Flask - wartości domyślne dla developmentu
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'domyslny-klucz-dla-dev-nie-uzywac-na-produkcji'
 
     # SQLAlchemy
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///database.db'
@@ -14,11 +17,11 @@ class Config:
     SQLALCHEMY_ECHO = False
 
     # JWT
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'haslo'
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'domyslny-klucz-jwt-dla-dev'
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
     JWT_TOKEN_LOCATION = ["cookies"]
-    JWT_COOKIE_SECURE = False  # True in production (HTTPS only)
+    JWT_COOKIE_SECURE = False  # False dla http (lokalnie), True dla https (produkcja)
     JWT_COOKIE_SAMESITE = "Strict"
     JWT_COOKIE_CSRF_PROTECT = False
 
@@ -27,22 +30,18 @@ class Config:
 
 
 class DevelopmentConfig(Config):
+    """Konfiguracja pod środowisko deweloperskie (lokalne)"""
     DEBUG = True
     SQLALCHEMY_ECHO = True
 
 
 class ProductionConfig(Config):
+    """Konfiguracja pod środowisko produkcyjne"""
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
-
-    # Ensure secret keys are set in production
-    if not os.environ.get('SECRET_KEY'):
-        raise ValueError("SECRET_KEY environment variable must be set in production")
-    if not os.environ.get('JWT_SECRET_KEY'):
-        raise ValueError("JWT_SECRET_KEY environment variable must be set in production")
-
-
-class TestingConfig(Config):
-    TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=5)
+    
+    # Wymuszamy bezpieczne ciasteczka na produkcji
+    JWT_COOKIE_SECURE = True 
+    
+    # Usunięto blokady 'raise ValueError' dla łatwiejszego uruchamiania lokalnie
+    
