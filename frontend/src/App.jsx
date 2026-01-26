@@ -1,12 +1,11 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
-import UsersList from './pages/UsersList';
-import GateControl from './pages/GateControl'; // ZOSTAW TYLKO JEDNĄ TAKĄ LINIĘ
-import Navbar from './components/Navbar';
+import Dashboard from './pages/Dashboard';
+import GateControl from './pages/GateControl'; 
 import LogsView from './pages/LogsView';
 
-// Komponent chroniący dostęp - weryfikuje sesję użytkownika
+// Komponent chroniący dostęp
 const ProtectedRoute = ({ children }) => {
     const { user, loading } = useAuth();
 
@@ -15,7 +14,6 @@ const ProtectedRoute = ({ children }) => {
 
     return (
         <>
-            <Navbar /> {/* Navbar widoczny tylko dla zalogowanych */}
             {children}
         </>
     );
@@ -27,16 +25,15 @@ function App() {
             <Router>
                 <Routes>
                     <Route path="/login" element={<Login />} />
+                    
                     <Route path="/dashboard"
                         element={
                             <ProtectedRoute>
-                                <div style={{ padding: '20px' }}>
-                                    <h1>Witaj w Panelu Administratora!</h1>
-                                    <UsersList />
-                                </div>
+                                <Dashboard />
                             </ProtectedRoute>
                         }
                     />
+                    
                     <Route path="/gate"
                         element={
                             <ProtectedRoute>
@@ -44,6 +41,7 @@ function App() {
                             </ProtectedRoute>
                         }
                     />
+                    
                     <Route path="/logs"
                         element={
                             <ProtectedRoute>
@@ -51,6 +49,7 @@ function App() {
                             </ProtectedRoute>
                         }
                     />
+                    
                     <Route path="/" element={<Navigate to="/dashboard" />} />
                 </Routes>
             </Router>
