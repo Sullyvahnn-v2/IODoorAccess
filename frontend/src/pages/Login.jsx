@@ -39,7 +39,7 @@ const Login = () => {
                 </h2>
 
                 <p style={styles.description}>
-                    Hej! Wprowadź poniżej swoje dane, aby zalogować się do konta administratora.
+                    Hej! Wprowadź poniżej swoje dane, aby zalogować się do panelu administratora.
                 </p>
                 
                 <form onSubmit={handleSubmit} style={styles.form}>

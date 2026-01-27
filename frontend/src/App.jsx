@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import GateControl from './pages/GateControl'; 
 import LogsView from './pages/LogsView';
+import LogoutPage from './pages/LogoutPage';
 
 // Komponent chroniący dostęp
 const ProtectedRoute = ({ children }) => {
@@ -47,6 +48,12 @@ function App() {
                             <ProtectedRoute>
                                 <LogsView />
                             </ProtectedRoute>
+                        }
+                    />
+
+                    <Route path="/logout"
+                        element={
+                            <LogoutPage />
                         }
                     />
                     

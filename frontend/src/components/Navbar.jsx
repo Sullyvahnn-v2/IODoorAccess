@@ -5,15 +5,21 @@ const Navbar = () => {
     const { logout } = useAuth();
     const navigate = useNavigate();
 
-    const handleLogout = () => {
-        logout();
-        navigate('/login');
+    // Zmieniamy na async, aby mieć pewność, że wylogowanie zakończyło się przed zmianą strony
+    const handleLogout = async () => {
+        try {
+            console.log("Inicjacja wylogowania...");
+            await logout(); 
+            // KLUCZOWA ZMIANA: Przekierowanie na stronę z komunikatem, a nie na login
+            navigate('/logout'); 
+        } catch (error) {
+            console.error("Błąd podczas wylogowywania:", error);
+        }
     };
 
     return (
         <nav style={styles.nav}>
             <div style={styles.menuContainer}>
-                {/* Linki nawigacyjne */}
                 <Link to="/dashboard" style={styles.link}>Dashboard</Link>
                 <Link to="/gate" style={styles.link}>Bramka</Link>
                 <Link to="/logs" style={styles.link}>Logi</Link>
@@ -33,7 +39,7 @@ const Navbar = () => {
 
 const styles = {
     nav: {
-        backgroundColor: '#009051',// główny kolor
+        backgroundColor: '#009051',
         height: '60px',
         display: 'flex',
         alignItems: 'center',

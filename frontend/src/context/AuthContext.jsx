@@ -42,8 +42,15 @@ export function AuthProvider({ children }) {
         return false;
     };
 
+    const logout = () => {
+        setUser(null);
+        localStorage.removeItem('token');
+        console.log("Sesja wyczyszczona w AuthContext");
+    };
+
+
     return (
-        <AuthContext.Provider value={{ user, login, loading }}>
+        <AuthContext.Provider value={{ user, login, logout, loading }}>
             {children}
         </AuthContext.Provider>
     );
