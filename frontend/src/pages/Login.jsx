@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import logo from '../assets/logo.png';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -28,8 +29,8 @@ const Login = () => {
 
     return (
         <div style={styles.container}>
-            <div style={styles.logoPlaceholder}>
-                miejsce na logo
+            <div style={styles.logoContainer}>
+                <img src={logo} alt="SKW Logo" style={styles.logoImage} />
             </div>
             
             <div style={styles.loginBox}>
@@ -74,8 +75,7 @@ const Login = () => {
         </div>
     );
 };
-
-// Obiekt ze stylami (CSS w JS)
+// style
 const styles = {
     container: {
         display: 'flex',
@@ -83,42 +83,47 @@ const styles = {
         justifyContent: 'center',
         alignItems: 'center',
         height: '100vh',
-        backgroundColor: '#eaf4ec', // Jasnozielone tło całej strony
+        backgroundColor: '#eaf4ec',
         fontFamily: 'Arial, sans-serif',
     },
-    logoPlaceholder: {
-        backgroundColor: 'white',
-        padding: '40px 60px',
+    //logoooo
+    logoContainer: {
+        backgroundColor: '#eaf4ec',
+        padding: '20px 40px',
         marginBottom: '40px',
-        fontWeight: 'bold',
-        fontSize: '16px',
-        color: '#000',
-        textTransform: 'lowercase',
-        letterSpacing: '0.5px',
-        boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.05)', // Lekki cień pod logo
+        //boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.05)',
+        display: 'flex',            
+        justifyContent: 'center',   
+        alignItems: 'center',       
+        borderRadius: '10px'
+    },
+    logoImage: {
+        maxHeight: '100px',
+        width: 'auto',
+        display: 'block'
     },
     loginBox: {
-        backgroundColor: 'white', // Białe tło pudełka
-        borderRadius: '30px', // Mocno zaokrąglone rogi
+        backgroundColor: 'white',
+        borderRadius: '30px',
         padding: '50px 60px',
         width: '450px',
         textAlign: 'left',
         boxSizing: 'border-box',
-        boxShadow: '0px 8px 20px rgba(0, 0, 0, 0.05)', // Lekki cień
+        boxShadow: '0px 8px 20px rgba(0, 0, 0, 0.05)',
     },
     title: {
-        color: '#438e58', // Zielony kolor tekstu
+        color: '#438e58',
         fontSize: '28px',
         fontWeight: 'bold',
         marginBottom: '20px',
         lineHeight: '1.2',
-        textAlign: 'center', // Wyśrodkowanie tytułu
+        textAlign: 'center',
     },
     description: {
-        color: '#777', // Szary kolor tekstu
+        color: '#777',
         fontSize: '14px',
         marginBottom: '40px',
-        textAlign: 'center', // Wyśrodkowanie opisu
+        textAlign: 'center',
         lineHeight: '1.5',
     },
     form: {
@@ -127,7 +132,7 @@ const styles = {
     },
     input: {
         border: 'none',
-        borderBottom: '2px solid #438e58', // Tylko dolna linia
+        borderBottom: '2px solid #438e58',
         padding: '10px 0',
         marginBottom: '30px',
         fontSize: '16px',
@@ -136,11 +141,11 @@ const styles = {
         color: '#555',
     },
     button: {
-        backgroundColor: '#438e58', // Zielone tło
+        backgroundColor: '#438e58',
         color: 'white',
         padding: '12px',
         border: 'none',
-        borderRadius: '12px', // Zaokrąglone rogi
+        borderRadius: '12px',
         fontSize: '18px',
         fontWeight: 'bold',
         cursor: 'pointer',
