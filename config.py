@@ -8,7 +8,7 @@ class Config:
 
     # SQLAlchemy
     SQLALCHEMY_DATABASE_URI = 'sqlite:///database.db'
-    ADMIN_PASS = os.environ.get('ADMIN_PASS') or 'admin123'
+    ADMIN_PASS = os.environ.get('ADMIN_PASS') or 'admin'
     ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL') or 'admin@admin.com'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False
