@@ -4,6 +4,7 @@ import os
 
 # Choose config based on environment
 config = ProductionConfig if os.environ.get('FLASK_ENV') == 'production' else DevelopmentConfig
+# config = DevelopmentConfig
 
 app = create_app(config)
 
