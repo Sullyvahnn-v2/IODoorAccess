@@ -1,4 +1,5 @@
 from datetime import datetime
+import time
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 import hashlib
@@ -13,9 +14,9 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256), nullable=False)
     biometric_hash = db.Column(db.String(256), nullable=True)
-    expire_time = db.Column(db.DateTime, nullable=True)
+    expire_time = db.Column(db.DateTime, default=datetime.now())
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now(), nullable=False)
 
     # Relationship
     logs = db.relationship('Log', backref='user', lazy='dynamic', cascade='all, delete-orphan')
@@ -46,7 +47,7 @@ class User(db.Model):
     def is_expired(self):
         """Check if user account is expired"""
         if self.expire_time:
-            return datetime.utcnow() > self.expire_time
+            return datetime.now() > self.expire_time
         return False
 
     def to_dict(self, include_sensitive=False):

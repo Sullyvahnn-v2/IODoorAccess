@@ -54,6 +54,8 @@ def create_app(config_class=Config):
             db.session.add(admin)
             db.session.commit()
 
+    jwt.init_app(app)
+
     # JWT error handlers
     @jwt.expired_token_loader
     def expired_token_callback(jwt_header, jwt_payload):
