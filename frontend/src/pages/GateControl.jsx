@@ -1,12 +1,27 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import api from '../api/axios';
 import Navbar from '../components/Navbar';
 
 const GateControl = () => {
     const webcamRef = useRef(null);
+    const qrInputRef = useRef(null);
+
     const [status, setStatus] = useState('Oczekiwanie na skan...');
+    const [qrCode, setQrCode] = useState('');
     const [log, setLog] = useState([]);
+    const [scanState, setScanState] = useState('idle');
+
+    useEffect(() => {
+        const keepFocus = () => {
+            if (qrInputRef.current && scanState === 'idle') {
+                qrInputRef.current.focus();
+            }
+        };
+        keepFocus();
+        window.addEventListener('click', keepFocus);
+        return () => window.removeEventListener('click', keepFocus);
+    }, [scanState]);
 
     const captureAndVerify = async () => {
         const imageSrc = webcamRef.current.getScreenshot();
@@ -39,7 +54,61 @@ const GateControl = () => {
             console.error(err);
         }
     };
+    const handleScan = async (e) => {
+        if (e) e.preventDefault();
 
+        if (!qrCode.trim()) return;
+
+        setScanState('processing');
+        setStatus('Weryfikacja biometryczna...');
+
+        // Zrób zdjęcie
+        const imageSrc = webcamRef.current.getScreenshot();
+
+        try {
+            // Wyślij QR + Zdjęcie do backendu
+            const response = await api.post('/logs/verify', {
+                qr_token: qrCode,
+                image: imageSrc,
+            });
+
+            if (response.data.access_granted) {
+                setStatus('DOSTĘP PRZYZNANY');
+                setScanState('success');
+                const newLog = {
+                    time: new Date().toLocaleTimeString(),
+                    msg: `Wejście: ${response.data.user || 'Pracownik'}`,
+                    success: true
+                };
+                setLog(prev => [newLog, ...prev]);
+            } else {
+                setStatus(`ODMOWA: ${response.data.message}`);
+                setScanState('error');
+                const newLog = {
+                    time: new Date().toLocaleTimeString(),
+                    msg: `Odmowa: ${response.data.message}`,
+                    success: false
+                };
+                setLog(prev => [newLog, ...prev]);
+            }
+        } catch (err) {
+            setStatus('Błąd połączenia');
+            setScanState('error');
+            console.error(err);
+        } finally {
+            // Reset po 3 sekundach
+            setTimeout(() => {
+                setQrCode('');
+                setScanState('idle');
+                setStatus('Oczekiwanie na skan...');
+            }, 3000);
+        }
+    };
+    const getBorderColor = () => {
+        if (scanState === 'success') return '#28a745'; // Zielony
+        if (scanState === 'error') return '#dc3545';   // Czerwony
+        return '#009051';                              // Twój domyślny
+    };
     return (
         <div style={styles.pageWrapper}>
             <Navbar />
@@ -50,7 +119,7 @@ const GateControl = () => {
                     <h1 style={styles.title}>PUNKT KONTROLNY - WEJŚCIE GŁÓWNE</h1>
                     
                     {/* Zielona ramka skanera */}
-                    <div style={styles.scannerFrame}>
+                    <div style={{...styles.scannerFrame, borderColor: getBorderColor()}}>
                         <div style={styles.webcamContainer}>
                             <Webcam 
                                 audio={false} 
@@ -67,7 +136,7 @@ const GateControl = () => {
                             
                             <button 
                                 onClick={captureAndVerify} 
-                                style={styles.scanButton}
+                                style={{...styles.scanButton, backgroundColor: getBorderColor()}}
                                 onMouseOver={(e) => e.target.style.backgroundColor = '#357a46'}
                                 onMouseOut={(e) => e.target.style.backgroundColor = '#009746'}
                             >
@@ -75,6 +144,16 @@ const GateControl = () => {
                             </button>
                         </div>
                     </div>
+                    <form onSubmit={handleScan} style={{ position: 'absolute', opacity: 0, top: '-1000px' }}>
+                        <input
+                            ref={qrInputRef}
+                            type="text"
+                            value={qrCode}
+                            onChange={(e) => setQrCode(e.target.value)}
+                            autoComplete="off"
+                        />
+                        <button type="submit">Skanuj</button>
+                    </form>
                 </div>
 
                 {/* dolna karta*/}

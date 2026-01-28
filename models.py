@@ -14,7 +14,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256), nullable=False)
-    biometric_hash = db.Column(db.String(256), nullable=True)
+    biometric_data = db.Column(db.PickleType, nullable=True)
     expire_time = db.Column(db.DateTime, default=datetime.now())
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now(), nullable=False)
