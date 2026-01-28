@@ -2,6 +2,7 @@ from flask import request
 from flask_restx import Namespace, Resource, fields
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt, verify_jwt_in_request
 from jwt import ExpiredSignatureError
+from utils.qrCode import generate_secure_token
 
 from models import db, User
 from datetime import datetime, date, timedelta
@@ -84,9 +85,15 @@ class UserList(Resource):
     def get(self):
         """Get all users (admin) or current user"""
         users = User.query.all()
+        users_data = []
+        for user in users:
+            user_dict = user.to_dict()
+            user_dict['qr_token'] = generate_secure_token(user.id)
+
+            users_data.append(user_dict)
 
         return {
-            'users': [user.to_dict() for user in users],
+            'users': users_data,
         }, 200
 
 

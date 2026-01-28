@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api/axios';
+import { QRCodeCanvas } from 'qrcode.react';
 
 const UserList = ({ refreshTrigger }) => {
     const [users, setUsers] = useState([]);
@@ -62,10 +63,11 @@ const UserList = ({ refreshTrigger }) => {
                                 <td style={styles.td}>{user.created_at}</td>
                                 <td style={styles.td}>
                                     <div style={styles.qrPlaceholder}>
-                                        <img 
-                                            src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${user.email}`} 
-                                            alt="QR" 
-                                        />
+                                        <QRCodeCanvas
+                                             value={user.qr_token || user.email}
+                                             size={80}
+                                             level={"H"}
+                                          />
                                         <span style={{fontSize: '10px', color: '#777'}}>Zeskanuj przy wejściu</span>
                                     </div>
                                 </td>
