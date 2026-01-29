@@ -3,20 +3,20 @@ import api from '../api/axios';
 
 const AddUser = ({ onUserAdded }) => {
     const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+    const [days, setDays] = useState('');
     const [message, setMessage] = useState('');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await api.post('/auth/signup', {
+            await api.post('/auth/create', {
                 email,
-                password,
+                days,
                 is_admin: false 
             });
             setMessage('Pracownik dodany pomyślnie!');
             setEmail('');
-            setPassword('');
+            setDays('');
             if (onUserAdded) onUserAdded();
         } catch (err) {
             setMessage('Błąd: ' + (err.response?.data?.message || 'Nie udało się dodać pracownika'));
@@ -37,10 +37,10 @@ const AddUser = ({ onUserAdded }) => {
                         style={styles.input} 
                     />
                     <input 
-                        type="password" 
-                        placeholder="Hasło tymczasowe" 
-                        value={password} 
-                        onChange={(e) => setPassword(e.target.value)} 
+                        type="days"
+                        placeholder="Dni do wygaśnięcia dostępu (domyślnie 100)"
+                        value={days}
+                        onChange={(e) => setDays(e.target.value)}
                         required 
                         style={styles.input} 
                     />

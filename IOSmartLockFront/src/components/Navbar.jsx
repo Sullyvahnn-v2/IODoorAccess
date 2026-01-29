@@ -34,7 +34,7 @@ const Navbar = () => {
 const styles = {
     nav: {
         backgroundColor: '#009051',// główny kolor
-        height: '60px',
+        height: '50px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',

@@ -8,15 +8,10 @@ const LogsView = () => {
     useEffect(() => {
         const fetchLogs = async () => {
             try {
-                const response = await api.get('/logs/'); 
+                const response = await api.get('/log/');
                 setLogs(response.data.logs || response.data || []);
             } catch (err) {
                 console.error("Błąd pobierania logów", err);
-                //dane testowe
-                setLogs([
-                    { id: 1, time: '2026-01-26 00:55:10', user_email: 'admin@admin.com', access_granted: true, error_log: '' },
-                    { id: 2, time: '2026-01-26 00:58:45', user_email: 'test1@skw.pl', access_granted: false, error_log: 'Brak w bazie' }
-                ]);
             }
         };
         fetchLogs();

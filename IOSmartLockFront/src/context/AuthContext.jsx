@@ -24,6 +24,18 @@ export function AuthProvider({ children }) {
         }
     };
 
+    const logout = async () => {
+        try {
+            const response = await api.post('/auth/logout');
+            console.log('Wylogowano:', response.data);
+            // tutaj możesz np. wyczyścić stan użytkownika lub przekierować:
+            // setUser(null);
+            // navigate('/login');
+        } catch (err) {
+            console.error('Błąd przy wylogowaniu:', err.response?.data || err.message);
+        }
+    };
+
     const login = async (email, password) => {
         try {
             const response = await api.post('/auth/login', { email, password });
@@ -42,8 +54,43 @@ export function AuthProvider({ children }) {
         return false;
     };
 
+    const generateQR = async (userId) => {
+        try {
+            const response = await api.post('/auth/qr/generate', {
+                user_id: userId
+            });
+
+            return response.data.token;
+        } catch (err) {
+            console.error("QR generate error:", err.response?.data);
+            throw err;
+        }
+    };
+
+    const verifyQR = async (token) => {
+        try {
+            const response = await api.post('/auth/qr/verify', { token });
+
+            if (response.status === 200) {
+                return true;
+            }
+        } catch (err) {
+            console.error("QR verify error:", err.response?.data);
+            return false;
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, login, loading }}>
+        <AuthContext.Provider
+            value={{
+                user,
+                login,
+                generateQR,
+                verifyQR,
+                loading,
+                logout
+            }}
+        >
             {children}
         </AuthContext.Provider>
     );
