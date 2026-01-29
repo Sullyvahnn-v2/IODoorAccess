@@ -2,6 +2,8 @@ from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 import hashlib
 
+from sqlalchemy import JSON
+
 db = SQLAlchemy()
 
 
@@ -11,7 +13,8 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256), nullable=False)
-    biometric_hash = db.Column(db.String(256), nullable=True)
+    biometric_hash = db.Column(JSON, nullable=True)
+    qr_token = db.Column(db.String(256), nullable=True)
     expire_time = db.Column(db.DateTime, default=datetime.now())
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now(), nullable=False)
@@ -48,6 +51,16 @@ class User(db.Model):
             return datetime.now() > self.expire_time
         return False
 
+    def set_qr_token(self, token):
+        try:
+            self.qr_token = token
+            db.session.commit()
+            return {'success': "Token set"}, 200
+        except Exception:
+            db.session.rollback()
+            return {'error', 'database error'}, 400
+
+
     def to_dict(self, include_sensitive=False):
         """Convert user to dictionary"""
         data = {
@@ -55,7 +68,8 @@ class User(db.Model):
             'email': self.email,
             'is_admin': self.is_admin,
             'expire_time': self.expire_time.isoformat() if self.expire_time else None,
-            'created_at': self.created_at.isoformat()
+            'created_at': self.created_at.isoformat(),
+            'qr_token': self.qr_token,
         }
         if include_sensitive:
             data['biometric_hash'] = self.biometric_hash

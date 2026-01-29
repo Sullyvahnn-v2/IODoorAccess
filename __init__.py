@@ -4,7 +4,7 @@ from flask_cors import CORS
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_restx import Api
 from config import Config
-
+from utils.qrCode import generate_secure_token
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -58,6 +58,7 @@ def create_app(config_class=Config):
                 is_admin=True
             )
             admin.set_password(ADMIN_PASS)  # Change this in production!
+            admin.set_qr_token(generate_secure_token(admin.id))
             db.session.add(admin)
             db.session.commit()
 

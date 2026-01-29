@@ -1,4 +1,9 @@
+import base64
 from datetime import datetime, timedelta
+
+import cv2
+import numpy as np
+
 from routes.log import make_log
 
 from flask import request, jsonify
@@ -13,6 +18,7 @@ from flask_jwt_extended import (
 
 from models import User, db
 from routes.user import admin_required
+from utils.faceRecognition import authenticate
 from utils.qrCode import verify_token, generate_secure_token
 
 # Namespace
@@ -41,9 +47,9 @@ user_model = auth_ns.model('User', {
     'expire_time': fields.String,
     'created_at': fields.String
 })
-qr_token_model = auth_ns.model('QRToken', {
-    'token': fields.String(description='QR authentication token')
-})
+# qr_token_model = auth_ns.model('QRToken', {
+#     'token': fields.String(description='QR authentication token')
+# })
 
 qr_verify_model = auth_ns.model('QRVerify', {
     'token': fields.String(required=True, description='QR token to verify')
@@ -63,16 +69,20 @@ class Signup(Resource):
         password = data.get('password')
         days = data.get('days')
 
-        if not email or not password:
-            return {'message': 'Email and password are required'}, 400
+        if not days:
+            days =100
+        if not password:
+            password = 'haslo'
+        if not email:
+            return {'message': 'Email is required'}, 400
 
         if User.query.filter_by(email=email).first():
             return {'message': 'Email already exists'}, 409
 
         try:
-            expire_time = datetime.now() + timedelta(days=days)
+            expire_time = datetime.now() + timedelta(days=int(days))
         except Exception:
-            return {'message': 'Invalid date format. Use DD.MM.YYYY'}, 400
+            return {'message': 'Invalid day format'}, 400
 
         user = User(email=email, expire_time=expire_time)
         user.set_password(password)
@@ -142,7 +152,7 @@ class Me(Resource):
 @auth_ns.route('/qr/generate')
 class GenerateQR(Resource):
     @admin_required()
-    @auth_ns.marshal_with(qr_token_model)
+    # @auth_ns.marshal_with(qr_token_model)
     @auth_ns.expect(qr_generate_model)
     @auth_ns.response(200, 'QR token generated')
     def post(self):
@@ -154,8 +164,9 @@ class GenerateQR(Resource):
             return {'message': 'User not found'}, 404
 
         token = generate_secure_token(user_id)
+        resp = user.set_qr_token(token)
 
-        return {'token': token}
+        return resp
 
 @auth_ns.route('/qr/verify')
 class VerifyQR(Resource):
@@ -179,9 +190,34 @@ class VerifyQR(Resource):
             return {'message': 'User not found'}, 404
 
         make_log(user_id, True, "QR authentication successful")
-        resp = jsonify({
+
+        return {
             'message': 'QR authentication successful',
             'user': user.email
-        })
+        }, 200
+@auth_ns.route('/face/verify')
+class FaceVerify(Resource):
+    def post(self):
+        data = request.json
+        img_base64 = data.get('image')
+        user_email = data.get('email')  # frontend wysyła email
 
-        return resp
+        if not img_base64 or not user_email:
+            return {'success': False, 'msg': 'Brak danych'}, 400
+
+        # pobierz użytkownika z bazy
+        user = User.query.filter_by(email=user_email).first()
+        if not user:
+            make_log(-1, False, "Face not recognized")
+            return {'success': False, 'msg': 'Nie znaleziono użytkownika'}, 404
+
+        # dekodowanie obrazu
+        img_data = base64.b64decode(img_base64.split(',')[1])
+        nparr = np.frombuffer(img_data, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        success, similarity = authenticate(img, user.biometric_hash)
+        match = True if similarity > 0.42 else False
+        if match: make_log(user.id, True, "access granted")
+        else: make_log(user.id, False, "face not recognized")
+        return {'success': match, 'similarity': float(similarity)}, 200

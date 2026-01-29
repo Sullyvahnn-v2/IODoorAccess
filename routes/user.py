@@ -1,3 +1,5 @@
+import cv2
+import numpy as np
 from flask import request
 from flask_restx import Namespace, Resource, fields
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt, verify_jwt_in_request
@@ -6,6 +8,7 @@ from jwt import ExpiredSignatureError
 from models import db, User
 from datetime import datetime, date, timedelta
 from functools import wraps
+from utils.faceRecognition import get_embedding
 
 user_ns = Namespace('users', description='User management operations')
 
@@ -132,14 +135,14 @@ class UserDetail(Resource):
         try:
             data = user_ns.payload
 
-            if 'expire_time' in data and user.is_admin:
-                if data['expire_time']:
-                    try:
-                        user.expire_time = date.today() + timedelta(days=365)
-                    except ValueError:
-                        return {'error': 'Invalid expire_time format. Use ISO format'}, 400
+            if 'days' in data:
+                days = data.get('days')
+
+                if days is None:
+                    user.expire_time = user.expire_time
                 else:
-                    user.expire_time = None
+                    days = int(days)
+                    user.expire_time = user.expire_time + timedelta(days=days)
 
             db.session.commit()
 
@@ -147,6 +150,10 @@ class UserDetail(Resource):
                 'message': 'User updated successfully',
                 'user': user.to_dict()
             }, 200
+
+        except (ValueError, TypeError):
+            db.session.rollback()
+            return {'error': 'expire_days must be a number'}, 400
 
         except Exception as e:
             db.session.rollback()
@@ -183,3 +190,37 @@ class UserDetail(Resource):
         except Exception as e:
             db.session.rollback()
             return {'error': str(e)}, 500
+
+@user_ns.route('/<int:user_id>/photo')
+class UserPhoto(Resource):
+
+    def post(self, user_id):
+        user = User.query.get(user_id)
+        if not user:
+            return {"message": "User not found"}, 404
+
+        if 'photo' not in request.files:
+            return {"message": "No photo provided"}, 400
+
+        file = request.files['photo']
+
+        # --- read image ---
+        np_img = np.frombuffer(file.read(), np.uint8)
+        img = cv2.imdecode(np_img, cv2.IMREAD_COLOR)
+
+        if img is None:
+            return {"message": "Invalid image"}, 400
+
+        # --- compute embedding ---
+        embedding = get_embedding(img)
+        if embedding is None:
+            return {"message": "No face detected"}, 400
+
+        # --- save embedding ---
+        user.biometric_hash = embedding.tolist()
+        db.session.commit()
+
+        return {
+            "message": "Photo processed successfully",
+            "user_id": user.id
+        }, 200

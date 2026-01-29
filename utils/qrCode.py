@@ -1,3 +1,4 @@
+import base64
 import secrets
 import hashlib
 import hmac
@@ -7,52 +8,47 @@ from models import User
 
 SECRET_KEY = "chuj".encode("utf-8")
 
-def generate_secure_token(user_id):
-    """
-    Generate a secure token for the user
-    Format: user_id|timestamp|hmac_signature
-    """
 
-    # Create the message to sign
-    message = f"{user_id}"
+def generate_secure_token(user_id, length=12):
+    """Generate a short, URL-safe HMAC token for a user."""
+    message = str(user_id).encode('utf-8')
+    signature = hmac.new(SECRET_KEY, message, hashlib.sha256).digest()
 
-    # Generate HMAC signature
-    signature = hmac.new(
-        SECRET_KEY,
-        message.encode('utf-8'),
-        hashlib.sha256
-    ).hexdigest()
-
-    token = f"{user_id}|{signature}"
-    return token
+    # Zamiana na URL-safe base64 i skrócenie
+    short_sig = base64.urlsafe_b64encode(signature)[:length].decode('utf-8')
+    return f"{user_id}|{short_sig}"
 
 
 def verify_token(token):
     """
-    Verify the token and extract user_id if valid
-    Returns: (is_valid, user_id, error_message)
+    Verify the token and extract user_id if valid.
+    Returns user_id if valid, else None.
     """
-    parts = token.split('|')
-    if len(parts) != 2:
+    try:
+        parts = token.split('|')
+        if len(parts) != 2:
+            return None
+
+        user_id_str, received_signature = parts
+        user_id = int(user_id_str)
+
+        user = User.query.get(user_id)
+        if not user or user.is_expired():
+            return None
+
+        # Recreate the message and signature
+        message = str(user_id).encode('utf-8')
+        expected_signature = base64.urlsafe_b64encode(
+            hmac.new(SECRET_KEY, message, hashlib.sha256).digest()
+        )[:len(received_signature)].decode('utf-8')
+
+        # Constant-time comparison
+        if hmac.compare_digest(received_signature, expected_signature):
+            return user_id
+        else:
+            return None
+
+    except Exception:
         return None
-
-    user_id, received_signature = parts
-    user = User.query.get(int(user_id))
-    if user.is_expired():
-        return None
-
-    # Recreate the message and verify signature
-    message = f"{user_id}"
-    expected_signature = hmac.new(
-        SECRET_KEY,
-        message.encode('utf-8'),
-        hashlib.sha256
-    ).hexdigest()
-
-    # Constant-time comparison to prevent timing attacks
-    if not hmac.compare_digest(received_signature, expected_signature):
-        return None
-
-    return user_id
 
 

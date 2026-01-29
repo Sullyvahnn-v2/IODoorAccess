@@ -12,25 +12,12 @@ def get_embedding(image):
         return None
     return faces[0].embedding
 
-
 def authenticate(image, user_emb, threshold=0.42):
-    """
-    Returns (True, user_id, similarity) if face matches database, else (False, None, 0.0)
-    """
     emb = get_embedding(image)
-    if emb is None:
-        return False, None, 0.0
-
-    if user_emb is None or user_emb == 0:
-        return False, None, 0.0
-
-    best_match = None
-
+    if emb is None or user_emb is None:
+        return False, 0.0
     sim = np.dot(emb, user_emb) / (np.linalg.norm(emb) * np.linalg.norm(user_emb))
-    if sim > threshold:
-        return True, best_match, sim
-
-    return False, None, 0.0
+    return sim > threshold, sim
 
 
 def capture_image():
